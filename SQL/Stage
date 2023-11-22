@@ -1,1 +1,72 @@
+//create database
+create or replace database managed_user;
 
+//create schema
+create or replace schema managed_user.external_stages;
+
+//create external stage
+create or replace stage managed_user.external_stages.aws_stage
+URL ="s3://bucketsnowflakes3"
+CREDENTIALS = (AWS_KEY_ID = 'AKIAWPOMJ24QUBRXM34W' AWS_SECRET_KEY = 'iE+BSbBEh0dsxAnOVU5HNRmk7t9CLGxwVmfuJx3+');
+
+//description of stage
+desc stage managed_user.external_stages.aws_stage;
+
+//check list of files in stage
+LIST @managed_user.external_stages.aws_stage;
+
+//create orders table
+CREATE OR REPLACE TABLE managed_user.PUBLIC.ORDERS (
+    ORDER_ID VARCHAR(30),
+    AMOUNT INT,
+    PROFIT INT,
+    QUANTITY INT,
+    CATEGORY VARCHAR(30),
+    SUBCATEGORY VARCHAR(30));
+
+//query orders table
+
+select * from managed_user.public.orders;
+
+//load data in orders table from stage
+COPY INTO managed_user.PUBLIC.ORDERS
+FROM @aws_stage
+file_format = (type = csv field_delimiter = "," skip_header=1)
+files=('OrderDetails.csv');
+
+//transformation while loading
+CREATE OR REPLACE TABLE managed_user.PUBLIC.ORDERS_EX (
+    ORDER_ID VARCHAR(30),
+    AMOUNT INT
+    );
+
+//copy data into orders_ex from stage object
+copy into managed_user.public.orders_ex
+from (select s.$1, s.$2 from @managed_user.external_stages.aws_stage s)
+file_format= (type=csv field_delimiter="," skip_header=1)
+files=('OrderDetails.csv');
+
+//Check data in ORderEx
+select * from orders_ex;
+
+//create order_ex1 table for case statement transformation
+CREATE OR REPLACE TABLE managed_user.PUBLIC.ORDERS_EX1 (
+    ORDER_ID VARCHAR(30),
+    AMOUNT INT,
+    PROFIT INT,
+    CATEGORY_SUBSTRING VARCHAR(255)
+    );
+
+//transformation using case statement
+copy into managed_user.public.orders_ex1
+from (select 
+        s.$1, 
+        s.$2,
+        s.$3,
+        case when (s.$3>0) then 'Profit' else 'Loss' END
+        from @managed_user.external_stages.aws_stage s)
+file_format= (type=csv field_delimiter="," skip_header=1)
+files=('OrderDetails.csv');
+
+//check results 
+select * from orders_ex1;
