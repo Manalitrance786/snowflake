@@ -1,0 +1,41 @@
+//  Create virtual warehouse for data scientist & DBA
+
+// Data Scientists
+CREATE WAREHOUSE DS_WH 
+WITH WAREHOUSE_SIZE = 'SMALL'
+WAREHOUSE_TYPE = 'STANDARD' 
+AUTO_SUSPEND = 30 
+AUTO_RESUME = TRUE
+MIN_CLUSTER_COUNT = 1 
+MAX_CLUSTER_COUNT = 1 
+SCALING_POLICY = 'STANDARD';
+
+//DBA
+create warehouse DBA_WH
+with warehouse_size='XSMALL'
+WAREHOUSE_TYPE = 'STANDARD' 
+AUTO_SUSPEND = 30
+AUTO_RESUME = TRUE 
+MIN_CLUSTER_COUNT = 1 
+MAX_CLUSTER_COUNT = 1 
+SCALING_POLICY = 'STANDARD';
+
+//create role
+//1-role-->2- attach role to WH--> 3-create users--> 4- grant role to users
+//step-1
+create role Data_scientist;
+
+//step-2
+grant usage on warehouse DS_WH to role Data_scientist;
+
+//step-3
+create user DS1 PASSWORD = 'DS1' LOGIN_NAME = 'DS1' DEFAULT_ROLE='DATA_SCIENTIST' DEFAULT_WAREHOUSE = 'DS_WH'  MUST_CHANGE_PASSWORD = FALSE;
+
+//step-4
+GRANT ROLE DATA_SCIENTIST TO USER DS1;
+
+//Drop User, role and WH to save credits
+drop user DS1;
+drop role data_scientist;
+drop warehouse DS_WH;
+drop warehouse DBA_WH;
