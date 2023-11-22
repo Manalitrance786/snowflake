@@ -1,7 +1,7 @@
 //Create Stage//
 create stage my_stage
 URL ="s3://snowflake-db-tutorial-manali/instacart/"
-CREDENTIALS = (AWS_KEY_ID = 'AKIAWPOMJ24QUBRXM34W' AWS_SECRET_KEY = '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');
+CREDENTIALS = (AWS_KEY_ID = '********************' AWS_SECRET_KEY = '**********************************');
 
 //Create file format//
 create or replace file format csv_file_format
