@@ -1,1 +1,40 @@
+//create schema for all file-formats
+create or replace schema managed_user.file_formats;
 
+//create file format object
+create or replace file format managed_user.file_formats.my_file_format;
+
+//describe file format created
+desc file format managed_user.file_formats.my_file_format;
+
+//altering file format object for csv
+alter file format managed_user.file_formats.my_file_format
+    set skip_header=1;
+
+// Defining properties on creation of file format object   
+CREATE OR REPLACE file format managed_user.file_formats.my_file_format
+    TYPE=JSON,
+    TIME_FORMAT=AUTO; 
+
+// Altering the type of a file format is not possible
+ALTER file format managed_user.file_formats.my_file_format
+SET TYPE = CSV;
+
+//create new csv file format
+CREATE OR REPLACE FILE FORMAT managed_user.file_formats.csv_file_format
+TYPE = CSV,
+FIELD_DELIMITER = ","
+SKIP_HEADER = 1;
+
+//since data was loaded already into orders table, we first truncate it else copy into command
+// throws LOAD_SKIPPED status and avoids loading data as it is already loaded.
+TRUNCATE  managed_user.PUBLIC.ORDERS;
+
+//copy data into table from stage using file format
+COPY INTO managed_user.PUBLIC.ORDERS
+    FROM  @managed_user.external_stages.aws_stage
+    file_format = (FORMAT_NAME= managed_user.file_formats.csv_file_format )
+    files = ('OrderDetails.csv');
+
+//check results
+SELECT * FROM  managed_user.PUBLIC.ORDERS;
