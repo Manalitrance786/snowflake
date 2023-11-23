@@ -1,1 +1,51 @@
+//create storage integration object -secure way to make connection with cloud storage
+//without exposing its keys
+create or replace storage integration s3_init
+    TYPE = external_stage
+    storage_provider = s3
+    enabled = true
+    storage_aws_role_arn='arn:aws:iam::445494449953:role/snowflake-s3-connection'
+    STORAGE_ALLOWED_locations=('s3://dw-snowflake-course-darshil')
+    comment = 'creating connection with s3'
 
+create or replace storage integration s3_init
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = S3
+  ENABLED = TRUE 
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::445494449953:role/snowflake-s3-connection'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://dw-snowflake-course-darshil')
+   COMMENT = 'Creating connection to S3' 
+
+    //to check properties of storage object
+    //updated the IAM_USER_ARN, external id from here to s3 trusted policy
+    desc integration s3_init;
+
+    //create orders_s3 table
+    create or replace table orders_caching_s3_init(
+ORDER_ID	VARCHAR(30)
+,AMOUNT	NUMBER(38,0)
+,PROFIT	NUMBER(38,0)
+,QUANTITY	NUMBER(38,0)
+,CATEGORY	VARCHAR(30)
+,SUBCATEGORY	VARCHAR(30)) ;
+
+//create file format
+create or replace file format managed_user.file_formats.csv_file_format
+    type=CSV
+    field_delimiter=','
+    skip_header=1
+    null_if=('NULL','null')
+    empty_field_as_null=TRUE;
+
+//create stage now with storage integration without exposing sensitive information of cloud
+create or replace stage managed_user.external_stages.s3_init
+    URL='s3://dw-snowflake-course-darshil/OrderDetails.csv'
+    storage_integration= s3_init
+    file_format = managed_user.file_formats.csv_file_format
+
+//check values of stage
+List @managed_user.external_stages.s3_init;
+
+//copy command to copy data from stage to table
+copy into orders_caching_s3_init
+from @managed_user.external_stages.s3_init;
