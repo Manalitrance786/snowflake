@@ -1,1 +1,37 @@
+// List files in stage
+LIST @MANAGED_user.external_stages.aws_stage;
 
+select * from orders;
+
+//create another table orders caching
+create or replace table orders_caching(
+ORDER_ID	VARCHAR(30)
+,AMOUNT	NUMBER(38,0)
+,PROFIT	NUMBER(38,0)
+,QUANTITY	NUMBER(38,0)
+,CATEGORY	VARCHAR(30)
+,SUBCATEGORY	VARCHAR(30)
+,DATE DATE) ;
+
+//insert values into orders caching
+insert into orders_caching
+select 
+t.ORDER_ID
+,t.AMOUNT
+,t.PROFIT
+,t.QUANTITY
+,t.CATEGORY
+,t.SUBCATEGORY
+,DATE(UNIFORM(1500000000,1700000000,(RANDOM())))
+from orders t
+cross join (select * from orders)t2
+cross join (select TOP 100 * from orders)t3
+
+//query results before cluster -888ms
+select * from orders_caching where date ='2020-05-22';
+
+//add cluster key to orders_caching table
+alter table orders_caching cluster by (date);
+
+//same above query with cluster key -759 ms
+select * from orders_caching where date ='2020-05-22';
