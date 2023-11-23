@@ -1,1 +1,63 @@
+//Create stage to load unstructured data
+create or replace stage MANAGED_USER.EXTERNAL_STAGES.unstructured_data
+    URL='s3://bucketsnowflake-jsondemo';
 
+'''drop stage unstructured_data;'''
+
+//JSON file format//
+create or replace file format MANAGED_USER.FILE_FORMATS.Json_format
+type = 'JSON';
+
+//create table
+create or replace table MANAGED_USER.Public.JsonLoad(
+    rawfile variant);
+
+//copy into JsonLoad table from stage
+COPY into MANAGED_USER.Public.JsonLoad
+FROM @MANAGED_USER.External_stages.unstructured_data
+file_format = MANAGED_USER.FILE_FORMATS.Json_format
+files = ('HR_data.json');
+
+//check contents of stage
+List @MANAGED_USER.External_stages.unstructured_data;
+
+//Query the data loaded in jsonload table
+select * from MANAGED_USER.Public.JsonLoad;
+
+//different ways to query json data
+select rawfile:city::string from MANAGED_USER.Public.JsonLoad;
+
+//check spoken language
+SELECT 
+    rawfile:spoken_languages as spoken_languages
+FROM MANAGED_USER.Public.JsonLoad;
+
+//handling nested data 
+select 
+rawfile:id as ID,
+rawfile:first_name:: string as First_Name,
+rawfile:last_name:: string as Last_Name,
+rawfile:job:salary as Salary,
+rawfile:job:title:: string as title
+from MANAGED_USER.Public.JsonLoad;
+
+//flatten data for spoken language
+create or replace table MANAGED_USER.Public.Language as
+select
+rawfile:first_name:: string as First_Name,
+f.value:language::string as Language,
+f.value:level::string as Level
+from MANAGED_USER.Public.JsonLoad, table(flatten(rawfile:spoken_languages))f
+
+//query flatten table for results
+select * from MANAGED_USER.Public.Language;
+
+//query array data
+SELECT
+    rawfile:prev_company::string as prev_company
+FROM MANAGED_USER.Public.JsonLoad;
+
+//query first element of array data
+SELECT
+    rawfile:prev_company[0]::string as First_company    
+FROM MANAGED_USER.Public.JsonLoad;
