@@ -1,1 +1,63 @@
+-- Setting up snowpipe
+-----1) Create stage
+-----2) Test copy command
+-----3) Create pipe
+-----4) S3 notification
 
+//create employee table
+create or replace table managed_user.public.employees(
+    id INT,
+    first_name STRING,
+    last_name STRING,
+    email STRING,
+    location STRING,
+    department STRING
+);
+
+//Create file format
+--drop file format MANAGED_USER.FILE_FORMATS.CSV_FILE_FORMAT;
+create or replace file format MANAGED_USER.FILE_FORMATS.CSV_FILE_FORMAT
+    type= CSV
+    field_delimiter=','
+    skip_header=1
+    null_if=('NULL','null')
+    empty_field_as_null = TRUE;
+
+--create new external stage
+create or replace stage managed_user.external_stages.csv_folder
+    URL = 's3://snowflake-db-tutorial-manali/snowpipe/'
+    storage_integration = s3_init
+    file_format = MANAGED_USER.FILE_FORMATS.CSV_FILE_FORMAT
+
+--check values of storage integration
+desc storage integration S3_init;
+
+--always check storage integration has which all locations allowed
+-- you can add multiple locations as well
+alter storage integration S3_init set
+    STORAGE_ALLOWED_LOCATIONS =('s3://snowflake-db-tutorial-manali/snowpipe/');
+
+--check values of stage
+List @managed_user.external_stages.csv_folder;
+
+--create pipes for automating the loading of data in snowflake from S3
+create or replace schema managed_user.pipes;
+
+create or replace pipe managed_user.pipes.employee_pipe
+auto_ingest = TRUE
+as
+copy into managed_user.public.employees
+from @managed_user.external_stages.csv_folder;
+
+--check pipe details
+desc pipe managed_user.pipes.employee_pipe;
+
+--automate data loading by enabling data event in SQS
+--after that run select query
+select * from managed_user.public.employees;
+
+--show pipes 
+show pipes;
+
+--show pipes in database
+show pipes in database managed_user;
